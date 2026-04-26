@@ -1,0 +1,524 @@
+/* -------------------------------------------------------
+   Chapter Humanizer — LibreOffice Panel Styles
+------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #1e1e2e;
+  background: #f4f6f8;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 14px 14px 80px;
+}
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Header ---- */
+.header {
+  margin-bottom: 14px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e1e2e;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: #64748b;
+  padding-left: 28px;
+}
+
+/* ---- API Section ---- */
+.section {
+  margin-bottom: 14px;
+}
+
+.section label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.input-row {
+  display: flex;
+  gap: 6px;
+}
+
+input[type="password"] {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  background: white;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="password"]:focus {
+  border-color: #15803d;
+}
+
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: white;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+textarea:focus {
+  border-color: #15803d;
+}
+
+.hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ---- Connection bar ---- */
+.connection-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.conn-off {
+  background: #cbd5e1;
+}
+
+.conn-ready {
+  background: #fbbf24;
+}
+
+.conn-active {
+  background: #22c55e;
+}
+
+/* ---- Buttons ---- */
+.btn-primary {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: #15803d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover {
+  background: #166534;
+}
+
+.btn-primary:active {
+  background: #14532d;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
+  background: white;
+  color: #15803d;
+  border: 1.5px solid #15803d;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-outline:hover {
+  background: #f0fdf4;
+}
+
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 7px 12px;
+  background: white;
+  color: #15803d;
+  border: 1.5px solid #15803d;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #f0fdf4;
+}
+
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.btn-group .btn-primary,
+.btn-group .btn-outline {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-sample {
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  color: #94a3b8;
+  border: 1px dashed #cbd5e1;
+  border-radius: 7px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.btn-sample:hover {
+  color: #475569;
+  border-color: #94a3b8;
+}
+
+/* ---- Result card ---- */
+.result-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.original-text {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.55;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #e2e8f0;
+  margin-bottom: 10px;
+}
+
+.suggestion-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #15803d;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.suggestion {
+  font-size: 12px;
+  color: #1e1e2e;
+  line-height: 1.55;
+  background: #f0fdf4;
+  border-left: 3px solid #15803d;
+  border-radius: 0 6px 6px 0;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+/* ---- Action buttons ---- */
+.actions {
+  display: flex;
+  gap: 7px;
+}
+
+.btn-accept {
+  flex: 1;
+  padding: 7px;
+  background: #15803d;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-accept:hover {
+  background: #166534;
+}
+
+.btn-accept:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-skip {
+  flex: 1;
+  padding: 7px;
+  background: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-skip:hover {
+  background: #f8fafc;
+}
+
+/* ---- Score ---- */
+.score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+
+.score-arrow {
+  font-size: 16px;
+  color: #cbd5e1;
+  flex-shrink: 0;
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.score-amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.score-red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.score-pending {
+  background: #f1f5f9;
+  color: #cbd5e1;
+  font-size: 18px;
+}
+
+.score-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.reason-flag {
+  font-size: 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-weight: 600;
+}
+
+.reason-fixed {
+  font-size: 10px;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-weight: 600;
+}
+
+.reason-clear {
+  font-size: 10px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ---- Spinner ---- */
+.spinner {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  padding: 14px 0;
+}
+
+.spin-dot {
+  width: 8px;
+  height: 8px;
+  background: #15803d;
+  border-radius: 50%;
+  animation: bounce 1.2s infinite ease-in-out;
+}
+
+.spin-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.spin-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---- Done message ---- */
+.done-msg {
+  text-align: center;
+  padding: 20px;
+  color: #15803d;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e1e2e;
+  color: white;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 999;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.3s;
+}
+
+.toast-error {
+  background: #dc2626;
+}
+
+/* ---- Utilities ---- */
+.hidden {
+  display: none !important;
+}

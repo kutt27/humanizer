@@ -1,0 +1,12 @@
+{
+  "name": "text-humanizer",
+  "version": "1.0.0",
+  "description": "Humanize AI-written text using Groq API",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^4.18.2"
+  }
+}
