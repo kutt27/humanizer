@@ -2,6 +2,8 @@
 
 Humanizer is a web service that rewrites AI-generated text to sound natural and human. It uses the Groq API to remove common AI writing patterns.
 
+![Panel](https://lh3.googleusercontent.com/d/18c6_Xvl5BZgC9y92sU6xC06ppSsffcqt)
+
 ---
 
 ## Features
@@ -25,8 +27,8 @@ Humanizer is a web service that rewrites AI-generated text to sound natural and 
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/kutt27/text-humanizer.git
-cd text-humanizer
+git clone https://github.com/kutt27/humanizer.git
+cd humanizer
 npm install
 ```
 
