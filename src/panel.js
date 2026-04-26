@@ -120,7 +120,8 @@ async function humanizeText() {
       body: JSON.stringify({ 
         text, 
         apiKey,
-        format: currentFormat // Sending format option
+        format: currentFormat,
+        output: currentMD
       }),
     });
     

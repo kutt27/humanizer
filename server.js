@@ -34,7 +34,7 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/humanize', async (req, res) => {
-  const { text, apiKey, format } = req.body;
+  const { text, apiKey, format, output } = req.body;
   const resolvedKey = ENV_KEY || apiKey;
 
   if (!text || !resolvedKey) {
@@ -42,8 +42,16 @@ app.post('/api/humanize', async (req, res) => {
   }
 
   let userPrompt = text;
+  let systemPrompt = SYSTEM_PROMPT;
+
   if (format === 'points') {
-    userPrompt += '\n\nIMPORTANT: Return the humanized result as a clear bulleted list (bullet points).';
+    systemPrompt += '\n\nIMPORTANT: Convert the content into clear bullet points or numbered list items.';
+  }
+
+  if (output === 'formatted') {
+    systemPrompt += '\n\nIMPORTANT: Use markdown formatting. Use **bold** for important keywords or key phrases. Use *italic* sparingly for emphasis. Structure the output with proper headings if needed.';
+  } else {
+    systemPrompt += '\n\nIMPORTANT: Return plain text only. No markdown, no bold, no italic formatting.';
   }
 
   try {
@@ -56,7 +64,7 @@ app.post('/api/humanize', async (req, res) => {
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
         max_tokens: 1024,
