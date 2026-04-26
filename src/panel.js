@@ -1,40 +1,73 @@
 /* -------------------------------------------------------
-   Text Humanizer (Groq API)
- ------------------------------------------------------- */
+   Humanizer — Premium Text Humanizer
+------------------------------------------------------- */
 
 let serverHasKey = false;
+let currentFormat = 'regular';
+let currentMD = 'unformatted';
 
 document.addEventListener('DOMContentLoaded', () => {
+  // --- Tab Logic ---
+  setupTabs('format-tabs', (val) => currentFormat = val);
+  setupTabs('markdown-tabs', (val) => {
+    currentMD = val;
+    refreshOutputDisplay();
+  });
+
+  // --- Modal Logic ---
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsModal = document.getElementById('settings-modal');
+  const closeSettings = document.getElementById('close-settings');
+
+  settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+  closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+  window.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.add('hidden');
+  });
+
+  // --- Actions ---
   document.getElementById('save-key-btn').addEventListener('click', saveApiKey);
   document.getElementById('humanize-btn').addEventListener('click', humanizeText);
   document.getElementById('insert-sample-btn').addEventListener('click', insertSampleText);
+  document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
 
-  fetch('/api/config')
-    .then(r => r.json())
-    .then(cfg => {
-      serverHasKey = !!cfg.hasServerKey;
-      if (serverHasKey) {
-        document.getElementById('key-section').style.display = 'none';
-        document.getElementById('key-status-server').textContent = '✓ API key loaded from server .env';
-        document.getElementById('key-status-server').style.display = 'block';
-      } else {
-        const saved = localStorage.getItem('ch-api-key');
-        if (saved) {
-          document.getElementById('api-key').value = saved;
-          document.getElementById('key-status').textContent = 'API key loaded.';
-        }
-      }
-    })
-    .catch(() => {
-      const saved = localStorage.getItem('ch-api-key');
-      if (saved) {
-        document.getElementById('api-key').value = saved;
-        document.getElementById('key-status').textContent = 'API key loaded.';
-      }
-    });
+  // --- Initial Config ---
+  loadConfig();
 });
 
-/* ---- API key ---- */
+function setupTabs(groupId, callback) {
+  const group = document.getElementById(groupId);
+  const buttons = group.querySelectorAll('.tab-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      callback(btn.dataset.value);
+    });
+  });
+}
+
+/* ---- Config & API Key ---- */
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    serverHasKey = !!cfg.hasServerKey;
+    if (serverHasKey) {
+      document.getElementById('key-section').style.display = 'none';
+      const statusEl = document.getElementById('key-status-server');
+      statusEl.textContent = '✓ Using server-side API key';
+      statusEl.style.display = 'block';
+      statusEl.style.color = '#10b981';
+    } else {
+      const saved = localStorage.getItem('ch-api-key');
+      if (saved) document.getElementById('api-key').value = saved;
+    }
+  } catch (err) {
+    console.error('Failed to load config', err);
+  }
+}
+
 function saveApiKey() {
   const key = document.getElementById('api-key').value.trim();
   if (!key.startsWith('gsk_')) {
@@ -43,12 +76,13 @@ function saveApiKey() {
   }
   localStorage.setItem('ch-api-key', key);
   setKeyStatus('Saved ✓');
+  setTimeout(() => document.getElementById('settings-modal').classList.add('hidden'), 1000);
 }
 
 function setKeyStatus(msg, isError = false) {
   const el = document.getElementById('key-status');
   el.textContent = msg;
-  el.style.color = isError ? '#dc2626' : '#15803d';
+  el.style.color = isError ? '#ef4444' : '#10b981';
 }
 
 function getApiKey() {
@@ -56,225 +90,131 @@ function getApiKey() {
   return localStorage.getItem('ch-api-key') || '';
 }
 
-/* ---- Sample text ---- */
-const SAMPLE_AI_TEXT =
-  'The integration of artificial intelligence into modern organizational workflows represents a paradigm shift — fundamentally transforming how enterprises navigate the rapidly evolving technological landscape. Furthermore, it is worth noting that robust and seamless automation tools leverage cutting-edge capabilities to foster unprecedented operational efficiency across vibrant, dynamic, and resilient teams. Moreover, this groundbreaking development serves as a testament to human ingenuity, underscoring its pivotal role in shaping the broader industry landscape and delivering seamless value at every crucial touchpoint.';
+/* ---- Humanize Logic ---- */
+let lastResult = '';
 
-function insertSampleText() {
-  document.getElementById('paste-area').value = SAMPLE_AI_TEXT;
-  showToast('Sample text inserted');
-}
-
-/* ---- Humanize text ---- */
 async function humanizeText() {
-  if (!getApiKey()) { showToast('Enter your Groq API key first — or set GROQ_API_KEY in .env', true); return; }
-
-  const btn = document.getElementById('humanize-btn');
-  const text = document.getElementById('paste-area').value.trim();
-
-  if (!text || text.length < 10) {
-    showToast('Paste some text first (at least 10 characters)', true);
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('Please enter your API key in settings', true);
+    document.getElementById('settings-modal').classList.remove('hidden');
     return;
   }
 
+  const inputArea = document.getElementById('input-area');
+  const text = inputArea.value.trim();
+
+  if (!text || text.length < 10) {
+    showToast('Please enter at least 10 characters', true);
+    return;
+  }
+
+  const btn = document.getElementById('humanize-btn');
   btn.disabled = true;
-  btn.textContent = 'Humanizing...';
-  showCard(text);
+  btn.innerHTML = '<span class="loading-spinner"></span> Humanizing...';
 
   try {
     const response = await fetch('/api/humanize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, apiKey: getApiKey() }),
+      body: JSON.stringify({ 
+        text, 
+        apiKey,
+        format: currentFormat // Sending format option
+      }),
     });
+    
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'API error');
-    updateCard(data.result);
+    
+    lastResult = data.result;
+    refreshOutputDisplay();
+    updateScore(lastResult);
+    
+    document.getElementById('copy-btn').disabled = false;
+    showToast('Text humanized! ✓');
   } catch (err) {
     showToast('Error: ' + err.message, true);
-    setCardError();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h.01" /><path d="M17.8 6.2 19 5" /><path d="M3 21l9-9" /><path d="M12.2 6.2 11 5" />
+      </svg>
+      Humanize Text
+    `;
   }
-
-  resetBtn('humanize-btn', 'Humanize Text');
 }
 
-/* ---- Humanizer score (heuristic, 0–94, higher = more human) ---- */
-function humanScore(text) {
+function refreshOutputDisplay() {
+  const outputArea = document.getElementById('output-area');
+  if (!lastResult) return;
+
+  if (currentMD === 'formatted') {
+    // Simple markdown-ish preview or just text with spacing
+    outputArea.innerHTML = lastResult.split('\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<br>').join('');
+  } else {
+    outputArea.textContent = lastResult;
+  }
+}
+
+function updateScore(text) {
+  // Simple heuristic score for UI feedback
+  const score = calculateHeuristicScore(text);
+  const indicator = document.getElementById('score-indicator');
+  const valueEl = document.getElementById('score-value');
+  
+  indicator.classList.remove('hidden');
+  valueEl.textContent = score;
+  
+  const color = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+  const bg = score >= 80 ? '#ecfdf5' : score >= 50 ? '#fffbeb' : '#fef2f2';
+  valueEl.style.color = color;
+  valueEl.style.backgroundColor = bg;
+}
+
+function calculateHeuristicScore(text) {
   const t = text.toLowerCase();
   let penalties = 0;
-  const flags = [];
-
-  const banned = [
-    'delve', 'leverage', 'robust', 'seamless', 'pivotal',
-    'testament', 'tapestry', 'vibrant', 'foster',
-    'furthermore', 'moreover', 'additionally', 'groundbreaking',
-    'underscore', 'realm', 'navigate', 'landscape',
-  ];
-  const foundWords = [];
+  const banned = ['delve', 'leverage', 'robust', 'seamless', 'pivotal', 'testament', 'tapestry', 'vibrant', 'foster'];
   banned.forEach(w => {
     const hits = (t.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length;
-    if (hits) { penalties += hits * 10; foundWords.push(w); }
+    penalties += hits * 8;
   });
-  if (foundWords.length) flags.push({ key: 'vocab', label: `AI words: ${foundWords.slice(0, 4).join(', ')}${foundWords.length > 4 ? ` +${foundWords.length - 4}` : ''}` });
-
-  const emDashes = (text.match(/—/g) || []).length;
-  if (emDashes) {
-    penalties += emDashes * 12;
-    flags.push({ key: 'emdash', label: `em dash${emDashes > 1 ? ` ×${emDashes}` : ''}` });
-  }
-
-  const phraseList = [
-    'marks a pivotal moment',
-    'serves as a testament',
-    'represents a paradigm shift',
-    'it is worth noting',
-    'underscoring its',
-    'highlighting the need',
-  ];
-  phraseList.forEach(p => {
-    if (t.includes(p)) {
-      penalties += 15;
-      flags.push({ key: `phrase:${p}`, label: `"${p}"` });
-    }
-  });
-
-  return { score: Math.max(7, Math.min(94, 100 - penalties)), flags };
+  return Math.max(10, Math.min(98, 100 - penalties));
 }
 
-function scoreBadgeHtml(score, id) {
-  const cls = score >= 71 ? 'score-green' : score >= 41 ? 'score-amber' : 'score-red';
-  return `<span class="score-badge ${cls}" id="${id}">${score}</span>`;
-}
-
-function reasonsHtml(flags) {
-  if (!flags.length) return '<span class="reason-clear">No AI patterns detected</span>';
-  return flags.map(f => `<span class="reason-flag">${escapeHtml(f.label)}</span>`).join('');
-}
-
-function improvementsHtml(beforeFlags, afterFlags) {
-  const afterKeys = new Set(afterFlags.map(f => f.key));
-  const fixed = beforeFlags.filter(f => !afterKeys.has(f.key));
-  if (!fixed.length) return '<span class="reason-clear">Score already clean</span>';
-  return fixed.map(f => `<span class="reason-fixed">✓ ${escapeHtml(f.label)}</span>`).join('');
-}
-
-/* ---- Card UI ---- */
-function showCard(originalText) {
-  const before = humanScore(originalText);
-  const area = document.getElementById('card-area');
-  area.innerHTML = `
-    <div class="result-card" id="result-card">
-      <div class="score-row">
-        <div class="score-col">
-          <div class="score-label">AI Score</div>
-          ${scoreBadgeHtml(before.score, 'score-before')}
-        </div>
-        <div class="score-arrow">→</div>
-        <div class="score-col">
-          <div class="score-label">Human Score</div>
-          <span class="score-badge score-pending" id="score-after">—</span>
-        </div>
-      </div>
-      <div class="score-reasons" id="score-reasons">${reasonsHtml(before.flags)}</div>
-      <div class="score-reasons hidden" id="score-improvements"></div>
-      <div class="card-label">Original</div>
-      <div class="original-text">${escapeHtml(originalText)}</div>
-      <div class="card-label suggestion-label hidden">Rewrite</div>
-      <div class="suggestion hidden" id="suggestion-text"></div>
-      <div class="spinner" id="spinner">
-        <div class="spin-dot"></div><div class="spin-dot"></div><div class="spin-dot"></div>
-      </div>
-      <div class="actions hidden" id="card-actions">
-        <button class="btn-accept" id="btn-accept">Copy to Clipboard</button>
-        <button class="btn-skip" id="btn-dismiss">Dismiss</button>
-      </div>
-    </div>
-  `;
-
-  const card = document.getElementById('result-card');
-  card._humanized = null;
-  card._beforeFlags = before.flags;
-
-  document.getElementById('btn-accept').addEventListener('click', acceptResult);
-  document.getElementById('btn-dismiss').addEventListener('click', dismissResult);
-}
-
-function updateCard(humanizedText) {
-  const card = document.getElementById('result-card');
-  if (!card) return;
-  card._humanized = humanizedText;
-
-  const after = humanScore(humanizedText);
-  const afterEl = document.getElementById('score-after');
-  if (afterEl) {
-    afterEl.textContent = after.score;
-    afterEl.className = 'score-badge ' + (after.score >= 71 ? 'score-green' : after.score >= 41 ? 'score-amber' : 'score-red');
-  }
-
-  const improveEl = document.getElementById('score-improvements');
-  if (improveEl) {
-    improveEl.innerHTML = improvementsHtml(card._beforeFlags || [], after.flags);
-    improveEl.classList.remove('hidden');
-  }
-  document.getElementById('score-reasons')?.classList.add('hidden');
-
-  document.getElementById('spinner').classList.add('hidden');
-  document.getElementById('suggestion-text').textContent = humanizedText;
-  document.getElementById('suggestion-text').classList.remove('hidden');
-  card.querySelector('.suggestion-label').classList.remove('hidden');
-  document.getElementById('card-actions').classList.remove('hidden');
-}
-
-function setCardError() {
-  const spinner = document.getElementById('spinner');
-  if (spinner) spinner.innerHTML = '<p style="color:#dc2626;font-size:12px">Error — try again</p>';
-}
-
-/* ---- Accept / Dismiss ---- */
-async function acceptResult() {
-  const card = document.getElementById('result-card');
-  if (!card || !card._humanized) return;
-
-  const btn = document.getElementById('btn-accept');
-  btn.disabled = true;
-  btn.textContent = 'Copying...';
-
+async function copyToClipboard() {
+  if (!lastResult) return;
+  const btn = document.getElementById('copy-btn');
+  const originalHtml = btn.innerHTML;
+  
   try {
-    await navigator.clipboard.writeText(card._humanized);
-    document.getElementById('card-area').innerHTML = '<div class="done-msg">✓ Copied to clipboard</div>';
-    showToast('Done ✓');
+    await navigator.clipboard.writeText(lastResult);
+    btn.innerHTML = '✓ Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(() => btn.innerHTML = originalHtml, 2000);
   } catch (err) {
-    showToast('Error: ' + err.message, true);
-    btn.disabled = false;
-    btn.textContent = 'Copy to Clipboard';
+    showToast('Failed to copy', true);
   }
 }
 
-function dismissResult() {
-  document.getElementById('card-area').innerHTML = '';
+/* ---- Utilities ---- */
+function insertSampleText() {
+  const SAMPLE = "The integration of artificial intelligence into modern organizational workflows represents a paradigm shift — fundamentally transforming how enterprises navigate the rapidly evolving technological landscape. Furthermore, it is worth noting that robust and seamless automation tools leverage cutting-edge capabilities to foster unprecedented operational efficiency.";
+  document.getElementById('input-area').value = SAMPLE;
+  showToast('Sample text inserted');
 }
 
-function resetBtn(id, label) {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-  btn.disabled = false;
-  btn.textContent = label;
-}
-
-/* ---- Toast ---- */
 function showToast(msg, isError = false) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = 'toast' + (isError ? ' toast-error' : '');
   toast.classList.remove('hidden');
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.add('hidden'), 3500);
+  toast._timer = setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
 function escapeHtml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

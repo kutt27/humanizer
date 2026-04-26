@@ -34,11 +34,16 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/humanize', async (req, res) => {
-  const { text, apiKey } = req.body;
+  const { text, apiKey, format } = req.body;
   const resolvedKey = ENV_KEY || apiKey;
 
   if (!text || !resolvedKey) {
     return res.status(400).json({ error: 'Missing text or apiKey' });
+  }
+
+  let userPrompt = text;
+  if (format === 'points') {
+    userPrompt += '\n\nIMPORTANT: Return the humanized result as a clear bulleted list (bullet points).';
   }
 
   try {
@@ -52,7 +57,7 @@ app.post('/api/humanize', async (req, res) => {
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: text },
+          { role: 'user', content: userPrompt },
         ],
         max_tokens: 1024,
         temperature: 0.7,
