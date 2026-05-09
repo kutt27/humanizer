@@ -8,22 +8,9 @@ app.use(express.static(path.join(__dirname, 'src')));
 
 app.get('/', (req, res) => res.redirect('/panel.html'));
 
-const SYSTEM_PROMPT = `You are a writing editor. Rewrite the provided paragraph to remove AI writing patterns and make it sound natural and human.
+const { generateSystemPrompt } = require('./lib/methodology');
 
-Rules:
-- Remove AI vocabulary: delve, leverage, robust, navigate, seamless, pivotal, testament, landscape, underscore, tapestry, vibrant, foster, crucial, realm, Furthermore, Moreover, Additionally, groundbreaking
-- Remove em dashes (—) — replace with commas or periods
-- Remove inflated significance language: "marks a pivotal moment", "serves as a testament", "represents a paradigm shift"
-- Replace copula avoidance: "serves as / stands as / represents / boasts" → use "is / are / has"
-- Remove rule-of-three patterns and excessive parallelism
-- Remove vague attributions: "experts say", "industry observers", "it is worth noting"
-- Remove tacked-on -ing phrases that add fake depth (e.g. "underscoring its importance", "highlighting the need")
-- Remove negative parallelisms: "It's not just X; it's Y"
-- Vary sentence length naturally — mix short and long sentences
-- Keep all technical accuracy, terminology, and meaning intact
-- Keep approximately the same length
-
-Return ONLY the rewritten paragraph. No explanation, no preamble.`;
+const SYSTEM_PROMPT = generateSystemPrompt();
 
 const ENV_KEY = (process.env.GROQ_API_KEY || '').startsWith('gsk_')
   ? process.env.GROQ_API_KEY

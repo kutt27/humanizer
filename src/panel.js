@@ -108,11 +108,24 @@ function updateScore(text) {
 function calculateHeuristicScore(text) {
   const t = text.toLowerCase();
   let penalties = 0;
-  const banned = ['delve', 'leverage', 'robust', 'seamless', 'pivotal', 'testament', 'tapestry', 'vibrant', 'foster'];
+  
+  const banned = [
+    'delve', 'leverage', 'robust', 'seamless', 'pivotal', 'testament', 
+    'tapestry', 'vibrant', 'foster', 'landscape', 'underscore', 'crucial', 
+    'realm', 'furthermore', 'moreover', 'additionally', 'consequently',
+    'paradigm shift', 'it is worth noting', 'experts say'
+  ];
+
   banned.forEach(w => {
-    const hits = (t.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length;
-    penalties += hits * 8;
+    const regex = new RegExp(`\\b${w}\\b`, 'g');
+    const hits = (t.match(regex) || []).length;
+    penalties += hits * 5; // Reduced from 8 to 5 to allow for more words without bottoming out too fast
   });
+
+  // Additional penalty for Em Dashes if they are too frequent
+  const emDashes = (text.match(/—/g) || []).length;
+  if (emDashes > 2) penalties += (emDashes - 2) * 10;
+
   return Math.max(10, Math.min(98, 100 - penalties));
 }
 
