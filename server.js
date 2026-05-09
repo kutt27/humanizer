@@ -34,11 +34,14 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/humanize', async (req, res) => {
-  const { text, apiKey, format, output } = req.body;
-  const resolvedKey = ENV_KEY || apiKey;
+  const { text, format, output } = req.body;
 
-  if (!text || !resolvedKey) {
-    return res.status(400).json({ error: 'Missing text or apiKey' });
+  if (!ENV_KEY) {
+    return res.status(500).json({ error: 'Server API key is not configured' });
+  }
+
+  if (!text) {
+    return res.status(400).json({ error: 'Missing text' });
   }
 
   let userPrompt = text;
@@ -58,7 +61,7 @@ app.post('/api/humanize', async (req, res) => {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resolvedKey}`,
+        'Authorization': `Bearer ${ENV_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

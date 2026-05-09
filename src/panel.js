@@ -2,9 +2,9 @@
    Humanizer — Premium Text Humanizer
 ------------------------------------------------------- */
 
-let serverHasKey = false;
 let currentFormat = 'regular';
 let currentMD = 'unformatted';
+let lastResult = '';
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- Tab Logic ---
@@ -14,29 +14,15 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshOutputDisplay();
   });
 
-  // --- Modal Logic ---
-  const settingsBtn = document.getElementById('settings-btn');
-  const settingsModal = document.getElementById('settings-modal');
-  const closeSettings = document.getElementById('close-settings');
-
-  settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
-  closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
-  window.addEventListener('click', (e) => {
-    if (e.target === settingsModal) settingsModal.classList.add('hidden');
-  });
-
   // --- Actions ---
-  document.getElementById('save-key-btn').addEventListener('click', saveApiKey);
   document.getElementById('humanize-btn').addEventListener('click', humanizeText);
   document.getElementById('insert-sample-btn').addEventListener('click', insertSampleText);
   document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
-
-  // --- Initial Config ---
-  loadConfig();
 });
 
 function setupTabs(groupId, callback) {
   const group = document.getElementById(groupId);
+  if (!group) return;
   const buttons = group.querySelectorAll('.tab-btn');
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -47,60 +33,8 @@ function setupTabs(groupId, callback) {
   });
 }
 
-/* ---- Config & API Key ---- */
-async function loadConfig() {
-  try {
-    const r = await fetch('/api/config');
-    const cfg = await r.json();
-    serverHasKey = !!cfg.hasServerKey;
-    if (serverHasKey) {
-      document.getElementById('key-section').style.display = 'none';
-      const statusEl = document.getElementById('key-status-server');
-      statusEl.textContent = '✓ Using server-side API key';
-      statusEl.style.display = 'block';
-      statusEl.style.color = '#10b981';
-    } else {
-      const saved = localStorage.getItem('ch-api-key');
-      if (saved) document.getElementById('api-key').value = saved;
-    }
-  } catch (err) {
-    console.error('Failed to load config', err);
-  }
-}
-
-function saveApiKey() {
-  const key = document.getElementById('api-key').value.trim();
-  if (!key.startsWith('gsk_')) {
-    setKeyStatus('Key should start with gsk_...', true);
-    return;
-  }
-  localStorage.setItem('ch-api-key', key);
-  setKeyStatus('Saved ✓');
-  setTimeout(() => document.getElementById('settings-modal').classList.add('hidden'), 1000);
-}
-
-function setKeyStatus(msg, isError = false) {
-  const el = document.getElementById('key-status');
-  el.textContent = msg;
-  el.style.color = isError ? '#ef4444' : '#10b981';
-}
-
-function getApiKey() {
-  if (serverHasKey) return '__server__';
-  return localStorage.getItem('ch-api-key') || '';
-}
-
 /* ---- Humanize Logic ---- */
-let lastResult = '';
-
 async function humanizeText() {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    showToast('Please enter your API key in settings', true);
-    document.getElementById('settings-modal').classList.remove('hidden');
-    return;
-  }
-
   const inputArea = document.getElementById('input-area');
   const text = inputArea.value.trim();
 
@@ -119,7 +53,6 @@ async function humanizeText() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         text, 
-        apiKey,
         format: currentFormat,
         output: currentMD
       }),
@@ -142,7 +75,7 @@ async function humanizeText() {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h.01" /><path d="M17.8 6.2 19 5" /><path d="M3 21l9-9" /><path d="M12.2 6.2 11 5" />
       </svg>
-      Humanize Text
+      humanize text
     `;
   }
 }
@@ -152,7 +85,6 @@ function refreshOutputDisplay() {
   if (!lastResult) return;
 
   if (currentMD === 'formatted') {
-    // Simple markdown-ish preview or just text with spacing
     outputArea.innerHTML = lastResult.split('\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<br>').join('');
   } else {
     outputArea.textContent = lastResult;
@@ -160,7 +92,6 @@ function refreshOutputDisplay() {
 }
 
 function updateScore(text) {
-  // Simple heuristic score for UI feedback
   const score = calculateHeuristicScore(text);
   const indicator = document.getElementById('score-indicator');
   const valueEl = document.getElementById('score-value');
@@ -192,7 +123,7 @@ async function copyToClipboard() {
   
   try {
     await navigator.clipboard.writeText(lastResult);
-    btn.innerHTML = '✓ Copied!';
+    btn.innerHTML = '✓ copied!';
     showToast('Copied to clipboard');
     setTimeout(() => btn.innerHTML = originalHtml, 2000);
   } catch (err) {
