@@ -18,6 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('humanize-btn').addEventListener('click', humanizeText);
   document.getElementById('insert-sample-btn').addEventListener('click', insertSampleText);
   document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
+
+  const inputArea = document.getElementById('input-area');
+  let timer;
+  inputArea.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (inputArea.value.trim().length > 0) updateScore(inputArea.value);
+    }, 500);
+  });
 });
 
 function setupTabs(groupId, callback) {
@@ -92,41 +101,85 @@ function refreshOutputDisplay() {
 }
 
 function updateScore(text) {
-  const score = calculateHeuristicScore(text);
-  const indicator = document.getElementById('score-indicator');
-  const valueEl = document.getElementById('score-value');
-  
-  indicator.classList.remove('hidden');
-  valueEl.textContent = score;
-  
-  const color = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
-  const bg = score >= 80 ? '#ecfdf5' : score >= 50 ? '#fffbeb' : '#fef2f2';
-  valueEl.style.color = color;
-  valueEl.style.backgroundColor = bg;
+  const human = calculateScore(text);
+  fetchAiScore(text, human);
 }
 
-function calculateHeuristicScore(text) {
-  const t = text.toLowerCase();
-  let penalties = 0;
-  
-  const banned = [
-    'delve', 'leverage', 'robust', 'seamless', 'pivotal', 'testament', 
-    'tapestry', 'vibrant', 'foster', 'landscape', 'underscore', 'crucial', 
-    'realm', 'furthermore', 'moreover', 'additionally', 'consequently',
-    'paradigm shift', 'it is worth noting', 'experts say'
-  ];
+async function fetchAiScore(text, human) {
+  try {
+    const response = await fetch('/api/ai-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
 
-  banned.forEach(w => {
-    const regex = new RegExp(`\\b${w}\\b`, 'g');
-    const hits = (t.match(regex) || []).length;
-    penalties += hits * 5; // Reduced from 8 to 5 to allow for more words without bottoming out too fast
+    if (!response.ok) throw new Error('AI score failed');
+    const data = await response.json();
+
+    const aiScore = Math.max(0, Math.min(100, Math.round(data.score || 0)));
+    renderScores(human, aiScore);
+  } catch (err) {
+    renderScores(human, 100 - human);
+  }
+}
+
+function renderScores(human, aiScore) {
+  const panel = document.getElementById('score-panel');
+  if (!panel) return;
+  panel.classList.remove('hidden');
+
+  const hColor = human >= 80 ? '#10b981' : human >= 50 ? '#f59e0b' : '#ef4444';
+  const aColor = aiScore >= 80 ? '#ef4444' : aiScore >= 50 ? '#f59e0b' : '#10b981';
+
+  panel.innerHTML = `
+    <span class="score-label">human:</span>
+    <span class="score-badge" style="color: ${hColor}; background: ${human >= 80 ? '#ecfdf5' : human >= 50 ? '#fffbeb' : '#fef2f2'}">${human}</span>
+    <span class="score-divider">|</span>
+    <span class="score-label">ai:</span>
+    <span class="score-badge" style="color: ${aColor}; background: ${aiScore >= 80 ? '#fef2f2' : aiScore >= 50 ? '#fffbeb' : '#ecfdf5'}">${aiScore}</span>
+  `;
+}
+
+function calculateScore(text) {
+  const t = text.toLowerCase();
+  let score = 100;
+
+  ['delve', 'leverage', 'robust', 'navigate', 'seamless', 'pivotal', 'testament',
+   'landscape', 'underscore', 'tapestry', 'vibrant', 'foster', 'crucial', 'realm',
+   'think', 'utilize', 'comprehensive'].forEach(w => {
+    const hits = (t.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length;
+    if (hits > 0) score -= hits * 4;
   });
 
-  // Additional penalty for Em Dashes if they are too frequent
-  const emDashes = (text.match(/—/g) || []).length;
-  if (emDashes > 2) penalties += (emDashes - 2) * 10;
+  ['furthermore', 'moreover', 'additionally', 'consequently', 'groundbreaking',
+   'in conclusion', 'to summarize'].forEach(w => {
+    const hits = (t.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length;
+    if (hits > 0) score -= hits * 5;
+  });
 
-  return Math.max(10, Math.min(98, 100 - penalties));
+  ['experts say', 'industry observers', 'it is worth noting', 'many believe',
+   "it's important to remember"].forEach(w => {
+    if (t.includes(w)) score -= 8;
+  });
+
+  ['paradigm shift', 'game-changer', 'transformative', 'serves as a testament',
+   'marks a pivotal moment'].forEach(w => {
+    if (t.includes(w)) score -= 10;
+  });
+
+  const emDashes = (text.match(/—/g) || []).length;
+  if (emDashes > 2) score -= (emDashes - 2) * 8;
+
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  if (sentences.length > 1) {
+    const lengths = sentences.map(s => s.trim().split(/\s+/).length);
+    const avg = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+    const variance = lengths.reduce((sum, l) => sum + Math.pow(l - avg, 2), 0) / lengths.length;
+    const stdDevPct = (Math.sqrt(variance) / avg) * 100;
+    if (stdDevPct < 20) score -= 12;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 async function copyToClipboard() {
@@ -149,6 +202,7 @@ function insertSampleText() {
   const SAMPLE = "The integration of artificial intelligence into modern organizational workflows represents a paradigm shift — fundamentally transforming how enterprises navigate the rapidly evolving technological landscape. Furthermore, it is worth noting that robust and seamless automation tools leverage cutting-edge capabilities to foster unprecedented operational efficiency.";
   document.getElementById('input-area').value = SAMPLE;
   showToast('Sample text inserted');
+  updateScore(SAMPLE);
 }
 
 function showToast(msg, isError = false) {
