@@ -237,23 +237,32 @@ textarea, .output-preview {
   cursor: not-allowed;
 }
 
-/* ---- Score Indicator ---- */
-#score-indicator {
+/* ---- Score Panel ---- */
+#score-panel {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 13px;
   font-weight: 600;
   color: var(--gray-600);
 }
 
+.score-label {
+  color: var(--gray-500);
+}
+
 .score-badge {
   padding: 4px 12px;
   border-radius: 20px;
+  font-family: var(--font-heading);
+  font-size: 12px;
   background: var(--black);
   color: var(--white);
-  font-size: 12px;
-  font-family: var(--font-heading);
+}
+
+.score-divider {
+  color: var(--gray-300);
+  font-weight: 400;
 }
 
 /* ---- Toast ---- */
